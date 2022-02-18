@@ -210,7 +210,6 @@ func добавление_нач_и_кон_состояния(dfa DFA) DFA {
 	dfa.BAиP[Старт] = map[string][]string{}
 	dfa.BAиP[dfa.НачальноеСостояние][Старт] = []string{"ε"}
 
-	// if len(dfa.КонечныеСостояния) > 1 {
 	dfa.ABиP[Конец] = map[string][]string{}
 	dfa.BAиP[Конец] = map[string][]string{}
 	for i := range dfa.КонечныеСостояния {
@@ -224,11 +223,6 @@ func добавление_нач_и_кон_состояния(dfa DFA) DFA {
 	dfa.КонечныеСостояния = map[string]string{
 		Конец: Конец,
 	}
-	// } else {
-	// 	for i := range dfa.КонечныеСостояния {
-	// 		dfa.КонечноеСостояние = dfa.КонечныеСостояния[i]
-	// 	}
-	// }
 
 	dfa.НачальноеСостояние = Старт
 	dfa.КонечноеСостояние = Конец
@@ -251,133 +245,81 @@ func ОбъединениеПереходов(BB map[string][]string) map[string
 	return BB
 }
 
-// после ОбъединениеПереходов остается только один в pp (pp = все переходы между двумя вершинами)
-func удалениеПромежуточных(dfa DFA) DFA {
-	for A, RR := range dfa.ABиP {
-		printlnDFA(dfa)
+// старое решение
+// // после ОбъединениеПереходов остается только один в pp (pp = все переходы между двумя вершинами)
+// func удалениеПромежуточных(dfa DFA) DFA {
+// 	for A, RR := range dfa.ABиP {
+// 		printlnDFA(dfa)
 
-		for V1, V2 := range dfa.ABиP {
-			dfa.ABиP[V1] = ОбъединениеПереходов(V2)
-		}
+// 		for V1, V2 := range dfa.ABиP {
+// 			dfa.ABиP[V1] = ОбъединениеПереходов(V2)
+// 		}
 
-		for R, pp1 := range RR {
-			if A == R || R == dfa.КонечноеСостояние {
-				continue
-			}
+// 		for R, pp1 := range RR {
+// 			if A == R || R == dfa.КонечноеСостояние {
+// 				continue
+// 			}
 
-			i := 0
-			var естьпереходыВR bool
+// 			i := 0
+// 			var естьпереходыВR bool
 
-			// fmt.Println("A: ", A)
-			// fmt.Println("R:", R)
-			// fmt.Println(dfa.ABиP[R])
-			// берем вершины А и В, удаляя между ними переходы R
-			for B, pp2 := range dfa.ABиP[R] {
-				if B == R {
-					continue
-				}
+// 			// fmt.Println("A: ", A)
+// 			// fmt.Println("R:", R)
+// 			// fmt.Println(dfa.ABиP[R])
+// 			// берем вершины А и В, удаляя между ними переходы R
+// 			for B, pp2 := range dfa.ABиP[R] {
+// 				if B == R {
+// 					continue
+// 				}
 
-				// если в среднее состояние ещё есть переходы из другой вершины
-				// тогда мы его оставляем
-				// if len(dfa.BAиP[R]) > 0 {
-				// 	for a1 := range dfa.BAиP[R] {
-				// 		if a1 != A {
-				// 			естьпереходыВR = true
-				// 		}
-				// 	}
-				// }
+// 				// если в среднее состояние ещё есть переходы из другой вершины
+// 				// тогда мы его оставляем
+// 				// if len(dfa.BAиP[R]) > 0 {
+// 				// 	for a1 := range dfa.BAиP[R] {
+// 				// 		if a1 != A {
+// 				// 			естьпереходыВR = true
+// 				// 		}
+// 				// 	}
+// 				// }
 
-				newP := ""
-				if ppR, ok := dfa.ABиP[R][R]; ok {
-					newP = "(" + pp1[0] + "(" + ppR[0] + ")*" + pp2[0] + ")"
-					delete(dfa.ABиP[R], R)
-				} else {
-					if pp1[0] == "ε" {
-						newP = pp2[0]
-					} else if pp2[0] == "ε" {
-						newP = pp1[0]
-					} else {
-						newP = "(" + pp1[0] + pp2[0] + ")"
-					}
+// 				newP := ""
+// 				if ppR, ok := dfa.ABиP[R][R]; ok {
+// 					newP = "(" + pp1[0] + "(" + ppR[0] + ")*" + pp2[0] + ")"
+// 					delete(dfa.ABиP[R], R)
+// 				} else {
+// 					if pp1[0] == "ε" {
+// 						newP = pp2[0]
+// 					} else if pp2[0] == "ε" {
+// 						newP = pp1[0]
+// 					} else {
+// 						newP = "(" + pp1[0] + pp2[0] + ")"
+// 					}
 
-				}
+// 				}
 
-				if !естьпереходыВR {
-					delete(dfa.ABиP[R], B)
-				}
+// 				if !естьпереходыВR {
+// 					delete(dfa.ABиP[R], B)
+// 				}
 
-				dfa.ABиP[A][B] = append(dfa.ABиP[A][B], newP)
+// 				dfa.ABиP[A][B] = append(dfa.ABиP[A][B], newP)
 
-				i++
-			}
+// 				i++
+// 			}
 
-			if i > 0 {
-				delete(dfa.ABиP[A], R)
+// 			if i > 0 {
+// 				delete(dfa.ABиP[A], R)
 
-				if pp3, ok := dfa.ABиP[R]; (!ok || len(pp3) == 0) && !естьпереходыВR {
-					delete(dfa.ABиP, R)
-				}
-			}
-		}
-	}
+// 				if pp3, ok := dfa.ABиP[R]; (!ok || len(pp3) == 0) && !естьпереходыВR {
+// 					delete(dfa.ABиP, R)
+// 				}
+// 			}
+// 		}
+// 	}
 
-	return dfa
-}
+// 	return dfa
+// }
 
-func удалениеПетель(dfa DFA) DFA {
-	for A, RR := range dfa.ABиP {
-		// printlnDFA(dfa)
-
-		for V1, V2 := range dfa.ABиP {
-			dfa.ABиP[V1] = ОбъединениеПереходов(V2)
-		}
-
-		for R, pp1 := range RR {
-			if A == R {
-				continue
-			}
-
-			i := 0
-
-			for B, pp2 := range dfa.ABиP[R] {
-				if B != A || len(dfa.ABиP[R]) > 1 {
-					continue
-				}
-
-				newP := ""
-				if ppR, ok := dfa.ABиP[R][R]; ok {
-					newP = "(" + pp1[0] + "(" + ppR[0] + ")*" + pp2[0] + ")"
-					delete(dfa.ABиP[R], R)
-				} else {
-					if pp1[0] == "ε" {
-						newP = pp2[0]
-					} else if pp2[0] == "ε" {
-						newP = pp1[0]
-					} else {
-						newP = "(" + pp1[0] + pp2[0] + ")"
-					}
-
-				}
-
-				delete(dfa.ABиP[R], B)
-				dfa.ABиP[A][B] = append(dfa.ABиP[A][B], newP)
-
-				i++
-			}
-
-			if i > 0 {
-				delete(dfa.ABиP[A], R)
-
-				if pp3, ok := dfa.ABиP[R]; !ok || len(pp3) == 0 {
-					delete(dfa.ABиP, R)
-				}
-			}
-		}
-	}
-
-	return dfa
-}
-
+// формат graphviz
 func printlnDFA(dfa DFA) {
 	for A, RR := range dfa.ABиP {
 		for B, pp := range RR {
@@ -450,8 +392,8 @@ func printlnE(dfa DFA) {
 
 	equationSystem, err := solution.GetData(configPath)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(0)
+		fmt.Println("Решение с помощью слау", err)
+		return
 	}
 
 	ответ := solution.Pешение(equationSystem)
@@ -464,7 +406,7 @@ var Конец = "Z"
 
 func решение_2(dfa DFA) DFA {
 	for len(dfa.ABиP) > 2 {
-		// берем вершину всередине
+		// берем вершину в середине
 		for R, BB := range dfa.ABиP {
 			for C, D := range dfa.ABиP {
 				dfa.ABиP[C] = ОбъединениеПереходов(D)
