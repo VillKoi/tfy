@@ -148,7 +148,7 @@ func ПроверкаDFA(dfa DFA) {
 		}
 
 		if !ok && pp == 0 {
-			fmt.Println("Некорректные входные данные 1: ", A, "из сотояния нет перехода в конечные состояния", dfa.КонечныеСостояния)
+			fmt.Println("Некорректные входные данные 1: ", A, "из соcтояния нет перехода в конечные состояния", dfa.КонечныеСостояния)
 			os.Exit(0)
 		}
 	}
@@ -164,7 +164,8 @@ func ПроверкаDFA(dfa DFA) {
 					переходы[pp[i]] = struct{}{}
 				} else {
 					fmt.Println("Некорректные входные данные 2: ", A, B)
-					os.Exit(0)
+					fmt.Println("---")
+					//os.Exit(0)
 				}
 			}
 
@@ -208,6 +209,11 @@ func добавление_нач_и_кон_состояния(dfa DFA) DFA {
 		dfa.НачальноеСостояние: {"ε"},
 	}
 	dfa.BAиP[Старт] = map[string][]string{}
+
+	if _, ok := dfa.BAиP[dfa.НачальноеСостояние]; !ok {
+		dfa.BAиP[dfa.НачальноеСостояние] = map[string][]string{}
+	}
+
 	dfa.BAиP[dfa.НачальноеСостояние][Старт] = []string{"ε"}
 
 	dfa.ABиP[Конец] = map[string][]string{}
@@ -421,13 +427,18 @@ func решение_2(dfa DFA) DFA {
 			if len(BB) == 0 || len(AA) == 0 {
 				continue
 			}
-			i := 0
+
 			// может временный массив переходов?
 			середина := ""
 			if ppR, ok := dfa.ABиP[R][R]; ok {
-				середина = "(" + ppR[0] + ")*"
+				if strings.HasPrefix(ppR[0], "(") {
+					середина = ppR[0] + "*"
+				} else {
+					середина = "(" + ppR[0] + ")*"
+				}
 			}
 
+			i := 0
 			for A, ppA := range AA {
 				if A == R {
 					continue
@@ -440,13 +451,19 @@ func решение_2(dfa DFA) DFA {
 
 					newP := ""
 
-					// уточнить
 					if ppA[0] == "ε" {
 						newP = середина + ppB[0]
 					} else if ppB[0] == "ε" {
 						newP = ppA[0] + середина
 					} else {
 						newP = ppA[0] + середина + ppB[0]
+					}
+
+					if _, ok := dfa.ABиP[A]; !ok {
+						dfa.ABиP[A] = map[string][]string{}
+					}
+					if _, ok := dfa.BAиP[B]; !ok {
+						dfa.BAиP[B] = map[string][]string{}
 					}
 
 					dfa.ABиP[A][B] = append(dfa.ABиP[A][B], newP)
