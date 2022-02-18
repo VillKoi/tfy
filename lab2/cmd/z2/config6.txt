@@ -1,0 +1,2 @@
+X = bY+aab
+Y= a

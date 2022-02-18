@@ -1,0 +1,6 @@
+X = εA
+Z = ε
+A = aB + bC
+B = aA
+C = cC + bD + εZ
+D = aB + εZ + cC

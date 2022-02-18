@@ -1,0 +1,5 @@
+X = bY+aab + (c|b)Z + pM
+Y= a
+Z = ccZ + mX
+R = rY
+M = mR

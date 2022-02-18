@@ -1,0 +1,3 @@
+X = bY+aab + (c|b)Z
+Y= a
+Z = ccZ
