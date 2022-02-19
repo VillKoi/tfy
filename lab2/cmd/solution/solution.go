@@ -57,7 +57,6 @@ func GetData(configPath string) (EquationsSystem, error) {
 			if вторая_скобка != -1 && вторая_скобка < закрывающая_скобка &&
 				вторая_скобка < плюс {
 				fmt.Println("Много скобок")
-				os.Exit(0)
 			}
 
 			убано_все_после_закрывающей := strings.SplitN(убрано_все_до_скобки[1], ")", 2)
@@ -77,7 +76,6 @@ func GetData(configPath string) (EquationsSystem, error) {
 
 			if скобки_до == nil || скопки_после == nil {
 				fmt.Println("Нет скобок")
-				os.Exit(0)
 			}
 
 			убано_все_после_закрывающей := strings.SplitN(альтернатива, ")", 2)
@@ -88,7 +86,6 @@ func GetData(configPath string) (EquationsSystem, error) {
 		переменные_без_коэффициентов := re3.FindAllString("="+parts[1], -1)
 		if len(переменные_без_коэффициентов) > 0 {
 			fmt.Println("Переменные без коэффициентов")
-			os.Exit(0)
 		}
 
 		// получение всех переменных в уравнении

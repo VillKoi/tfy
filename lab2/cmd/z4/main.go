@@ -13,7 +13,7 @@ import (
 
 func main() {
 	var configPath string
-	flag.StringVar(&configPath, "c", "config6.txt", "Used for set path to config file.")
+	flag.StringVar(&configPath, "c", "config10.txt", "Used for set path to config file.")
 	flag.Parse()
 
 	fmt.Println(configPath)
@@ -88,8 +88,16 @@ func ПолучениеПереходов(s string) (переходы map[string
 	состояния[Старт] = Старт
 	состояния[Конец] = Конец
 
+	s = strings.ReplaceAll(s, " ", "")
+
 	for strings.Contains(s, "<") {
 		first := strings.Index(s, "<")
+
+		if !strings.HasPrefix(s, "<") {
+			fmt.Println("Что-то лишнее между > <:", s[:first])
+			os.Exit(0)
+		}
+
 		second := strings.Index(s, ">")
 		переход := s[first+1 : second]
 		sep := strings.Split(переход, ",")
@@ -125,6 +133,7 @@ func ПолучениеПереходов(s string) (переходы map[string
 func ПолучениеКонечныхСостояний(s string) map[string]string {
 	мапа := make(map[string]string)
 
+	s = strings.ReplaceAll(s, " ", "")
 	конечныеСостояния := strings.Split(s, ",")
 
 	for i := range конечныеСостояния {
