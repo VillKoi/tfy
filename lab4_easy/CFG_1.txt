@@ -1,0 +1,6 @@
+S -> aSS
+S -> bG1T
+T -> b
+T -> SG2
+G1 -> a
+G2 -> b

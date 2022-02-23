@@ -1,0 +1,4 @@
+S -> aS
+S -> bA
+A -> bA
+N -> m
