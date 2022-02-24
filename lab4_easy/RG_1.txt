@@ -1,4 +1,3 @@
-S -> aS
-S -> bA
-A -> bA
-N -> m
+O -> aO
+O -> bL
+L -> bL

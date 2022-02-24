@@ -1,5 +1,5 @@
-S -> aSS
-S -> bG1T
+S -> SS
+S -> G1T
 T -> b
 T -> SG2
 G1 -> a

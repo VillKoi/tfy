@@ -34,16 +34,16 @@ func main() {
 
 	fsa := RGtoFSA(rg)
 
-	kk, kkk := базовый_алгоритм(cfg, fsa)
+	новые_порождающие := базовый_алгоритм(cfg, fsa)
 
-	for k, v := range kk {
-		fmt.Print(k, " -> ")
-		for j := range v {
-			fmt.Print(v[j].t)
-		}
-		fmt.Println()
+	fmt.Println("----")
+	fmt.Println("Ответ")
+	for k := range новые_порождающие {
+		print(новые_порождающие[k])
 	}
+}
 
+func print(kkk []RK) {
 	for i := range kkk {
 		fmt.Print(kkk[i].In, " -> ")
 		for j := range kkk[i].Out {
@@ -54,6 +54,8 @@ func main() {
 }
 
 type CFG struct {
+	StarmNTerm string
+
 	Rules []Rule
 
 	map_Rules map[string]map[string][]string
@@ -92,6 +94,10 @@ func PrepareDataCFG(path string) (CFG, error) {
 		spl := strings.Split(all_string, "->")
 
 		cfg.NTerm[spl[0]] = struct{}{}
+
+		if cfg.StarmNTerm == "" {
+			cfg.StarmNTerm = spl[0]
+		}
 
 		terms := re_cfg_term.FindAllString(spl[1], -1)
 
@@ -155,7 +161,8 @@ func PrepareDataRG(path string) (RG, error) {
 
 type FSA struct {
 	FirstState string
-	EndState   string
+	// если по состоянию нет перехода оно конечное
+	EndStates []string
 
 	Состояния map[string]string
 
@@ -176,7 +183,6 @@ var re_rg_Nterm = regexp.MustCompile(`[A-Z]`)
 func RGtoFSA(rg RG) FSA {
 	fsa := FSA{
 		FirstState: rg.FirstState,
-		EndState:   endState,
 
 		Состояния: map[string]string{},
 
@@ -209,11 +215,63 @@ func RGtoFSA(rg RG) FSA {
 		fsa.PиAB[pp][rule.Nterm] = append(fsa.PиAB[pp][rule.Nterm], B)
 	}
 
+	for state := range fsa.Состояния {
+		pp, ok_есть_переходы := fsa.ABиP[state]
+		var ok_переход_по_себе bool
+
+		if ok_есть_переходы {
+			_, ok_переход_по_себе = pp[state]
+		}
+
+		if !ok_есть_переходы || len(pp) == 1 && ok_переход_по_себе {
+			fsa.EndStates = append(fsa.EndStates, state)
+		}
+
+	}
+
 	return fsa
 }
 
-func базовый_алгоритм(cfg CFG, fsa FSA) (map[Комбинация][]Комбинация, []RK) {
+func базовый_алгоритм(cfg CFG, fsa FSA) map[Комбинация][]RK {
 	// step 1: X -> t
+	комбинации_map_slice, rules_2 := получениеПростыхПравил(cfg, fsa)
+
+	комбинации_2 := получениеОстальныхПравил(fsa, rules_2)
+
+	// step 2: удаление неподождающих
+	порождающие := получениеПорождающих(комбинации_map_slice, комбинации_2)
+
+	// сборка всех достижимых
+	достижимые_2 := map[Комбинация][]RK{}
+
+	for k, v := range комбинации_map_slice {
+		достижимые_2[k] = append(достижимые_2[k], RK{
+			In:  k,
+			Out: v,
+		})
+	}
+	for _, rk := range порождающие {
+		достижимые_2[rk.In] = append(достижимые_2[rk.In], rk)
+	}
+	/////////
+
+	// получение всех стартовых
+	startTerms := получениеСтартовых(fsa, cfg)
+
+	новые_порождающие := map[Комбинация][]RK{}
+	// step 3: удаление недостижимых
+	for _, стартовыйНетерминал := range startTerms {
+		_, новые_порождающие = получениеДостижимых(достижимые_2, стартовыйНетерминал)
+	}
+
+	for k := range новые_порождающие {
+		print(новые_порождающие[k])
+	}
+
+	return новые_порождающие
+}
+
+func получениеПростыхПравил(cfg CFG, fsa FSA) (map[Комбинация][]Комбинация, []Rule) {
 	комбинации_map_slice := map[Комбинация][]Комбинация{}
 
 	rules_2 := []Rule{}
@@ -239,24 +297,29 @@ func базовый_алгоритм(cfg CFG, fsa FSA) (map[Комбинация
 			}
 		}
 	}
+	return комбинации_map_slice, rules_2
+}
 
-	rules_3 := []Rule{}
+func получениеОстальныхПравил(fsa FSA, rules_2 []Rule) []RK {
 	комбинации_2 := []RK{}
 
-	// step 2: X -> Y
-L:
+	// step 2: X -> Y,  X -> X
+	// L:
 	for _, rule := range rules_2 {
 		// игнорирование переходов в себя
-		for _, nterm := range rule.Nterms {
-			if rule.Nterm == nterm {
-				rules_3 = append(rules_3, rule)
-				continue L
-			}
-		}
+		// for _, nterm := range rule.Nterms {
+		// 	if rule.Nterm == nterm {
+		// 		rules_3 = append(rules_3, rule)
+		// 		continue L
+		// 	}
+		// }
 		// правила для всех возможных p, q, qi
 		// <p, A, q> - > <p, A1, q1> <qn-1, An, q>
 		// <X1, X, X2>
-		lines := получитьЦепочки(fsa, len(rule.Nterm)+1)
+		lines := получитьЦепочки(fsa, len(rule.Nterms)+1)
+		fmt.Println("---")
+		fmt.Println(lines)
+		fmt.Println("---")
 
 		// построение цепочки
 		for i := range lines {
@@ -264,7 +327,7 @@ L:
 			kk := Комбинация{
 				qi: lines[i][0],
 				A:  rule.Nterm,
-				qj: lines[i][len(rule.Nterm)],
+				qj: lines[i][len(rule.Nterms)],
 			}
 			// -> <Y1, Y, Y2>
 			for j, nterm := range rule.Nterms {
@@ -281,17 +344,47 @@ L:
 			})
 		}
 	}
+	return комбинации_2
+}
 
-	// step 3: X -> X
+func получениеПорождающих(комбинации_map_slice map[Комбинация][]Комбинация, комбинации_2 []RK) []RK {
+	m := -1
 
-	return комбинации_map_slice, комбинации_2
+	достижимые_нетермы := make(map[Комбинация]struct{}, len(комбинации_map_slice))
+	for k := range комбинации_map_slice {
+		достижимые_нетермы[k] = struct{}{}
+	}
+
+	fmt.Println("---")
+	fmt.Println(достижимые_нетермы)
+	fmt.Println("---")
+	print(комбинации_2)
+	fmt.Println("---")
+
+	недостижимые := комбинации_2
+	достижимые := []RK{}
+
+	for m != len(достижимые_нетермы) {
+		m = len(достижимые_нетермы)
+		достижимые_нетермы, недостижимые, достижимые = удалениеНепорождающих(достижимые_нетермы, недостижимые, достижимые)
+	}
+
+	fmt.Println("---")
+	fmt.Println(достижимые_нетермы)
+	fmt.Println("---")
+	print(недостижимые)
+	fmt.Println("---")
+	print(достижимые)
+	fmt.Println("---")
+
+	return достижимые
 }
 
 func получитьЦепочки(fsa FSA, length int) [][]string {
 	lines := [][]string{}
 
 	for A := range fsa.ABиP {
-		l, endLine := getLine(fsa, A, length, [][]string{{A}})
+		l, endLine := getLine(fsa, A, length-1, [][]string{{A}})
 
 		if endLine {
 			lines = append(lines, l...)
@@ -346,4 +439,70 @@ type Комбинация struct {
 	qj string
 
 	t string
+}
+
+func удалениеНепорождающих(достижимые_нетермы map[Комбинация]struct{}, недостижимые, достижимые []RK,
+) (достижимые_нетермы_2 map[Комбинация]struct{}, недостижимые_2, достижимые_2 []RK) {
+	достижимые_нетермы_2 = достижимые_нетермы
+	достижимые_2 = достижимые
+
+C:
+	for _, комбинация := range недостижимые {
+		for _, nterm := range комбинация.Out {
+			if _, ok := достижимые_нетермы[nterm]; !ok {
+				недостижимые_2 = append(недостижимые_2, комбинация)
+				continue C
+			}
+		}
+
+		достижимые_2 = append(достижимые_2, комбинация)
+		достижимые_нетермы[комбинация.In] = struct{}{}
+	}
+
+	return достижимые_нетермы, недостижимые_2, достижимые_2
+}
+
+func получениеДостижимых(порождающие map[Комбинация][]RK, стартовыйНетерминал Комбинация,
+) (map[Комбинация]struct{}, map[Комбинация][]RK) {
+	следующиеНетерминалы := []Комбинация{}
+	новые_порождающие := map[Комбинация][]RK{}
+
+	for _, rk := range порождающие[стартовыйНетерминал] {
+		следующиеНетерминалы = append(следующиеНетерминалы, rk.Out...)
+		новые_порождающие[rk.In] = append(новые_порождающие[rk.In], rk)
+	}
+
+	delete(порождающие, стартовыйНетерминал)
+
+	достижимые := map[Комбинация]struct{}{}
+
+	for len(следующиеНетерминалы) != 0 {
+		номые_нетерминалы := []Комбинация{}
+		for _, next_rks := range следующиеНетерминалы {
+			for _, rk := range порождающие[next_rks] {
+				номые_нетерминалы = append(номые_нетерминалы, rk.Out...)
+				новые_порождающие[rk.In] = append(новые_порождающие[rk.In], rk)
+			}
+
+			delete(порождающие, next_rks)
+		}
+
+		следующиеНетерминалы = номые_нетерминалы
+	}
+
+	return достижимые, новые_порождающие
+}
+
+func получениеСтартовых(fsa FSA, cfg CFG) []Комбинация {
+	startTerms := []Комбинация{}
+
+	for _, state := range fsa.EndStates {
+		startTerms = append(startTerms, Комбинация{
+			qi: fsa.FirstState,
+			A:  cfg.StarmNTerm,
+			qj: state,
+		})
+	}
+
+	return startTerms
 }
