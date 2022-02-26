@@ -1,0 +1,6 @@
+S -> LSL
+S -> CSC
+S -> b
+S -> a
+L -> a
+C -> b

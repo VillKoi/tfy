@@ -1,0 +1,4 @@
+O -> aO
+O -> bL
+L -> bL
+O -> aD

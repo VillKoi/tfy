@@ -13,8 +13,8 @@ func main() {
 	var cfgPath string
 	var rgPath string
 
-	flag.StringVar(&cfgPath, "c", "CFG_1.txt", "Used for set path to config file.")
-	flag.StringVar(&rgPath, "r", "RG_1.txt", "Used for set path to config file.")
+	flag.StringVar(&cfgPath, "c", "CFG_4.txt", "Used for set path to config file.")
+	flag.StringVar(&rgPath, "r", "RG_4.txt", "Used for set path to config file.")
 	flag.Parse()
 
 	fmt.Println(cfgPath)
@@ -199,6 +199,7 @@ func RGtoFSA(rg RG) FSA {
 		if B == "" {
 			B = endState
 		}
+		fsa.Состояния[B] = B
 
 		pp := re_rg_letter.FindString(rule.Out)
 
@@ -253,22 +254,45 @@ func базовый_алгоритм(cfg CFG, fsa FSA) map[Комбинация]
 	for _, rk := range порождающие {
 		достижимые_2[rk.In] = append(достижимые_2[rk.In], rk)
 	}
-	/////////
 
 	// получение всех стартовых
 	startTerms := получениеСтартовых(fsa, cfg)
 
 	новые_порождающие := map[Комбинация][]RK{}
 	// step 3: удаление недостижимых
+
+	новый_стартовый := Комбинация{
+		A: startTerms[0].A,
+	}
+	// и объединение
 	for _, стартовыйНетерминал := range startTerms {
-		_, новые_порождающие = получениеДостижимых(достижимые_2, стартовыйНетерминал)
+		следующие_порождающие := получениеДостижимых(достижимые_2, стартовыйНетерминал)
+
+		новые_порождающие[новый_стартовый] = append(новые_порождающие[новый_стартовый], RK{
+			In: новый_стартовый,
+			Out: []Комбинация{
+				стартовыйНетерминал,
+			}},
+		)
+
+		for k, v := range следующие_порождающие {
+			новые_порождающие[k] = append(новые_порождающие[k], v...)
+		}
 	}
 
+	fmt.Println("---")
+	fmt.Println("После удаление недостижимых")
 	for k := range новые_порождающие {
 		print(новые_порождающие[k])
 	}
 
-	return новые_порождающие
+	без_дубликатов := удалениеДубликатов(новые_порождающие)
+
+	for k := range без_дубликатов {
+		print(без_дубликатов[k])
+	}
+
+	return без_дубликатов
 }
 
 func получениеПростыхПравил(cfg CFG, fsa FSA) (map[Комбинация][]Комбинация, []Rule) {
@@ -463,34 +487,37 @@ C:
 }
 
 func получениеДостижимых(порождающие map[Комбинация][]RK, стартовыйНетерминал Комбинация,
-) (map[Комбинация]struct{}, map[Комбинация][]RK) {
+) map[Комбинация][]RK {
 	следующиеНетерминалы := []Комбинация{}
 	новые_порождающие := map[Комбинация][]RK{}
 
-	for _, rk := range порождающие[стартовыйНетерминал] {
+	достижимые_3 := map[Комбинация][]RK{}
+	for k, v := range порождающие {
+		достижимые_3[k] = v
+	}
+
+	for _, rk := range достижимые_3[стартовыйНетерминал] {
 		следующиеНетерминалы = append(следующиеНетерминалы, rk.Out...)
 		новые_порождающие[rk.In] = append(новые_порождающие[rk.In], rk)
 	}
 
-	delete(порождающие, стартовыйНетерминал)
-
-	достижимые := map[Комбинация]struct{}{}
+	delete(достижимые_3, стартовыйНетерминал)
 
 	for len(следующиеНетерминалы) != 0 {
 		номые_нетерминалы := []Комбинация{}
 		for _, next_rks := range следующиеНетерминалы {
-			for _, rk := range порождающие[next_rks] {
+			for _, rk := range достижимые_3[next_rks] {
 				номые_нетерминалы = append(номые_нетерминалы, rk.Out...)
 				новые_порождающие[rk.In] = append(новые_порождающие[rk.In], rk)
 			}
 
-			delete(порождающие, next_rks)
+			delete(достижимые_3, next_rks)
 		}
 
 		следующиеНетерминалы = номые_нетерминалы
 	}
 
-	return достижимые, новые_порождающие
+	return новые_порождающие
 }
 
 func получениеСтартовых(fsa FSA, cfg CFG) []Комбинация {
@@ -505,4 +532,161 @@ func получениеСтартовых(fsa FSA, cfg CFG) []Комбинаци
 	}
 
 	return startTerms
+}
+
+func удалениеДубликатов(StoAN map[Комбинация][]RK) map[Комбинация][]RK {
+	AtoS := map[Комбинация]map[Комбинация]struct{}{}
+
+	for ком, мRK := range StoAN {
+		for _, rk := range мRK {
+			for _, out := range rk.Out {
+				if _, ok := AtoS[out]; !ok {
+					AtoS[out] = map[Комбинация]struct{}{}
+				}
+				AtoS[out][ком] = struct{}{}
+			}
+		}
+	}
+
+	мапа_для_дубликатов := make(map[string]Комбинация)
+
+	m := -1
+
+	for len(StoAN) != m {
+		m = len(StoAN)
+
+		for _, mRK := range StoAN {
+			for _, rkStoAn := range mRK {
+				new_terms := getStringRule(rkStoAn.Out)
+
+				old_терм, ok := мапа_для_дубликатов[new_terms]
+				if !ok || old_терм == rkStoAn.In {
+					мапа_для_дубликатов[new_terms] = rkStoAn.In
+					continue
+				}
+
+				rkCДубликатами := AtoS[rkStoAn.In]
+
+				for Sдубликат := range rkCДубликатами {
+					mapПолучившихсяДубликатов := map[string]int{}
+
+					поДубликаты := StoAN[Sдубликат]
+
+					for i, rk := range поДубликаты {
+						s_out := getStringRule(rk.Out)
+
+						mapПолучившихсяДубликатов[s_out] = i
+
+						for k, outtttt := range rk.Out {
+							if outtttt == rkStoAn.In {
+								rk.Out[k] = old_терм
+							}
+						}
+
+						s_new_out := getStringRule(rk.Out)
+
+						number, ok := mapПолучившихсяДубликатов[s_new_out]
+
+						if !ok || number == i {
+							continue
+						}
+
+						StoAN[Sдубликат] = append(StoAN[Sдубликат][:i], StoAN[Sдубликат][i+1:]...)
+					}
+				}
+
+				// delete(AtoS[rkStoAn.In], rkStoAn.In)
+
+				if len(StoAN[rkStoAn.In]) == 1 {
+					delete(StoAN, rkStoAn.In)
+				}
+
+			}
+		}
+
+		fmt.Println("---")
+		for k := range StoAN {
+			print(StoAN[k])
+		}
+		fmt.Println("---")
+	}
+
+	// S -> AN : A -> S -> {S -> AN}
+	// ntern_в_правилах := map[Комбинация]map[Комбинация][]*RK{}
+
+	// for _, v := range порождающие {
+	// 	for _, vv := range v {
+	// 		rule := &vv
+	// 		for _, out := range vv.Out {
+	// 			if _, ok := ntern_в_правилах[out]; !ok {
+	// 				ntern_в_правилах[out] = map[Комбинация][]*RK{}
+	// 			}
+
+	// 			ntern_в_правилах[out][vv.In] = append(ntern_в_правилах[out][vv.In], rule)
+	// 		}
+	// 	}
+	// }
+
+	// m := -1
+
+	// for m != len(ntern_в_правилах) {
+	// 	m = len(ntern_в_правилах)
+
+	// 	мапа_для_дубликатов := make(map[string]Комбинация)
+
+	// 	// A -> S -> []{S -> AN}
+	// 	for A, m_k_rules := range ntern_в_правилах {
+	// 		// S -> []{S -> AN}
+	// 		for _, rules := range m_k_rules {
+	// 			// S -> AN
+	// 			for _, rk := range rules {
+	// 				terms := getStringRule(rk.Out)
+
+	// 				// <qi, A, qj><qi, N, qj> -> S
+	// 				старый_терм, ok := мапа_для_дубликатов[terms]
+
+	// 				if !ok || старый_терм == rk.In {
+	// 					мапа_для_дубликатов[terms] = rk.In
+
+	// 					// for _, out := range rk.Out {
+	// 					// 	if _, ok := next_rules[out]; !ok {
+	// 					// 		next_rules[out] = map[Комбинация][]*RK{}
+	// 					// 	}
+	// 					// 	next_rules[out][rk.In] = append(next_rules[out][rk.In], rk)
+	// 					// }
+	// 					continue
+	// 				}
+	// 				// находим все дубликаты -> заменяем
+
+	// 				// map[S] -> []{S -> AN}
+	// 				rks := ntern_в_правилах[rk.In]
+	// 				for S, rkssss := range rks {
+	// 					// []{S -> AN}
+	// 					for j := range rkssss {
+	// 						for k, outtttt := range rkssss[j].Out {
+	// 							if outtttt == rk.In {
+	// 								rkssss[j].Out[k] = старый_терм
+	// 							}
+	// 						}
+	// 					}
+	// 					ntern_в_правилах[старый_терм][S] = append(ntern_в_правилах[старый_терм][S], rkssss...)
+	// 				}
+	// 				// rk.In - дубликат
+
+	// 				delete(ntern_в_правилах, A)
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	return StoAN
+}
+
+func getStringRule(out []Комбинация) string {
+	s := ""
+	for _, v := range out {
+		s += "<" + v.qi + v.A + v.qj + v.t + ">"
+	}
+
+	return s
 }

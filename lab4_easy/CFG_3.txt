@@ -1,0 +1,8 @@
+S -> SS
+S -> G1T
+T -> b
+T -> SG2
+G1 -> a
+G2 -> b
+T -> SG3
+G3 -> b
