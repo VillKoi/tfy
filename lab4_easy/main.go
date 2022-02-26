@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -13,8 +14,8 @@ func main() {
 	var cfgPath string
 	var rgPath string
 
-	flag.StringVar(&cfgPath, "c", "CFG_4.txt", "Used for set path to config file.")
-	flag.StringVar(&rgPath, "r", "RG_4.txt", "Used for set path to config file.")
+	flag.StringVar(&cfgPath, "c", "CFG_5.txt", "Used for set path to config file.")
+	flag.StringVar(&rgPath, "r", "RG_5.txt", "Used for set path to config file.")
 	flag.Parse()
 
 	fmt.Println(cfgPath)
@@ -85,6 +86,8 @@ func PrepareDataCFG(path string) (CFG, error) {
 		NTerm: map[string]struct{}{},
 	}
 
+	ternIndex := 0
+
 	for i := range data {
 		all_string := strings.ReplaceAll(data[i], " ", "")
 
@@ -94,14 +97,49 @@ func PrepareDataCFG(path string) (CFG, error) {
 		spl := strings.Split(all_string, "->")
 
 		cfg.NTerm[spl[0]] = struct{}{}
+	}
+
+	свободныйAZ := 'A'
+
+	for _, ok := (cfg.NTerm[string(свободныйAZ)]); ok; {
+		свободныйAZ++
+	}
+
+	for i := range data {
+		all_string := strings.ReplaceAll(data[i], " ", "")
+
+		if strings.EqualFold(all_string, "") {
+			continue
+		}
+		spl := strings.Split(all_string, "->")
 
 		if cfg.StarmNTerm == "" {
 			cfg.StarmNTerm = spl[0]
 		}
 
-		terms := re_cfg_term.FindAllString(spl[1], -1)
+		out := spl[1]
 
-		Nterms := re_cfg_Nterm.FindAllString(spl[1], -1)
+		terms := re_cfg_term.FindAllString(out, -1)
+
+		Nterms := re_cfg_Nterm.FindAllString(out, -1)
+
+		if len(terms) > 0 && len(Nterms) > 0 {
+			for j := range terms {
+				термНаЗамену := string(свободныйAZ) + strconv.Itoa(ternIndex)
+
+				out = strings.ReplaceAll(out, terms[j], термНаЗамену)
+				ternIndex++
+
+				cfg.Rules = append(cfg.Rules, Rule{
+					Nterm: термНаЗамену,
+					Out:   terms[j],
+
+					terms: []string{terms[j]},
+				})
+			}
+		}
+
+		Nterms = re_cfg_Nterm.FindAllString(out, -1)
 
 		cfg.Rules = append(cfg.Rules, Rule{
 			Nterm: spl[0],
