@@ -69,7 +69,7 @@ func main() {
 
 type DFA struct {
 	НачальноеСостояние string
-	КонечноеСостояние  string
+	// КонечноеСостояние  string
 
 	Состояния map[string]string
 
@@ -363,7 +363,7 @@ func пересечение_DFA(dfa_1, dfa_2 DFA) DFA {
 					new_dfa.ПарыСостояний[new_state_B] = [2]string{BB_1[0], BB_2[0]}
 
 					new_dfa.ABиP[state][new_state_B] = append(new_dfa.ABиP[state][new_state_B], p)
-					new_dfa.BAиP[new_state_B][p] = append(new_dfa.BAиP[new_state_B][p], state)
+					new_dfa.BAиP[new_state_B][state] = append(new_dfa.BAиP[new_state_B][state], p)
 					new_dfa.APиB[state][p] = append(new_dfa.APиB[state][p], new_state_B)
 
 					_, ok_1 = dfa_1.КонечныеСостояния[state_1]
@@ -390,7 +390,7 @@ func пересечение_DFA(dfa_1, dfa_2 DFA) DFA {
 }
 
 func проверкаДостижимостиВсехКонечных(dfa DFA) bool {
-	if len(dfa.КонечноеСостояние) == 0 {
+	if len(dfa.КонечныеСостояния) == 0 {
 		return false
 	}
 
