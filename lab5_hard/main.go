@@ -34,11 +34,11 @@ func main() {
 
 	dfa_1 = достройкаЛовушек(dfa_1)
 
-	// printlnDFA(dfa_1)
+	printlnDFA(dfa_1)
 
 	dfa_2 = достройкаЛовушек(dfa_2)
 
-	// printlnDFA(dfa_2)
+	printlnDFA(dfa_2)
 
 	// printlnDFA(пересечение_DFA(dfa_1, dfa_2))
 
@@ -58,10 +58,10 @@ func main() {
 
 	printlnDFA(p_d_2_d_d_1)
 
-	пер_1 := проверкаНаПустотуПересечения(p_d_1_d_d_2)
-	пер_2 := проверкаНаПустотуПересечения(p_d_2_d_d_1)
+	пер_1 := проверкаДостижимостиВсехКонечных(p_d_1_d_d_2)
+	пер_2 := проверкаДостижимостиВсехКонечных(p_d_2_d_d_1)
 
-	if пер_1 && пер_2 {
+	if !пер_1 && !пер_2 {
 		fmt.Println("языки эквивалентны")
 	}
 
@@ -387,6 +387,39 @@ func пересечение_DFA(dfa_1, dfa_2 DFA) DFA {
 	printlnDFA(new_dfa)
 
 	return new_dfa
+}
+
+func проверкаДостижимостиВсехКонечных(dfa DFA) bool {
+	if len(dfa.КонечноеСостояние) == 0 {
+		return false
+	}
+
+	// пусто ->	все конечные не достижимы
+
+	достижимые := true
+
+	for k := range dfa.КонечныеСостояния {
+		mapД := map[string]struct{}{
+			k: {},
+		}
+		m := -1
+
+		for m != len(mapД) {
+			m = len(mapД)
+
+			for д := range mapД {
+				for A := range dfa.BAиP[д] {
+					mapД[A] = struct{}{}
+				}
+			}
+		}
+
+		if _, ok := mapД[dfa.НачальноеСостояние]; !ok {
+			return false
+		}
+	}
+
+	return достижимые
 }
 
 func проверкаНаПустотуПересечения(dfa DFA) bool {
