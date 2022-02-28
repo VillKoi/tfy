@@ -54,6 +54,8 @@ func main() {
 
 	p_d_2_d_d_1 := пересечение_DFA(dfa_2, d_dfa_1_)
 
+	fmt.Println("перечение")
+
 	printlnDFA(p_d_1_d_d_2)
 
 	printlnDFA(p_d_2_d_d_1)
@@ -306,7 +308,7 @@ func пересечение_DFA(dfa_1, dfa_2 DFA) DFA {
 		},
 
 		ПарыСостояний: map[string][2]string{
-			начальноеСостояние: [2]string{
+			начальноеСостояние: {
 				dfa_1.НачальноеСостояние, dfa_2.НачальноеСостояние,
 			},
 		},
@@ -346,6 +348,11 @@ func пересечение_DFA(dfa_1, dfa_2 DFA) DFA {
 					}
 
 					new_state_B := BB_1[0] + BB_2[0]
+
+					// Игнорирование ловушек
+					if strings.Contains(new_state_B, "Л") {
+						continue
+					}
 
 					if _, ok := new_dfa.ABиP[state]; !ok {
 						new_dfa.ABиP[state] = map[string][]string{}
