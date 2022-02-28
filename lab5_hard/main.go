@@ -13,8 +13,8 @@ func main() {
 	var dfa1Path string
 	var dfa2Path string
 
-	flag.StringVar(&dfa1Path, "c1", "DFA_2_1.txt", "Used for set path to config file.")
-	flag.StringVar(&dfa2Path, "c2", "DFA_2_2.txt", "Used for set path to config file.")
+	flag.StringVar(&dfa1Path, "c1", "DFA_3_1.txt", "Used for set path to config file.")
+	flag.StringVar(&dfa2Path, "c2", "DFA_3_2.txt", "Used for set path to config file.")
 	flag.Parse()
 
 	fmt.Println(dfa1Path)
