@@ -1,0 +1,4 @@
+First regex:
+bb|bbc
+Second regex:
+bb(c|ε)
